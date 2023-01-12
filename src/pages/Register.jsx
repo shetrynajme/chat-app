@@ -1,16 +1,16 @@
-import React from 'react'
-import Add from "../img/addAvatar.png"
-import { useState } from 'react';
-import { createUserWithEmailAndPassword , updateProfile} from "firebase/auth";
-import { auth, db, storage } from '../firebase'
+import React, { useState } from "react";
+import Add from "../img/addAvatar.png";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { auth, db, storage } from "../firebase";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
-import { doc, setDoc } from "firebase/firestore"; 
+import { doc, setDoc } from "firebase/firestore";
+import { useNavigate } from "react-router-dom";
 
+const Register = () => {
+  const [err, setErr] = useState(false);
+  const navigate = useNavigate();
 
-function Register() {
-  const [error, setError] = useState(false);
-
-const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const displayName = e.target[0].value;
     const email = e.target[1].value;
@@ -22,7 +22,8 @@ const handleSubmit = async (e) => {
       const res = await createUserWithEmailAndPassword(auth, email, password);
 
       //Create a unique image name
-      const storageRef = ref(storage, displayName);
+      const date = new Date().getTime();
+      const storageRef = ref(storage, `${displayName + date}`);
 
       await uploadBytesResumable(storageRef, file).then(() => {
         getDownloadURL(storageRef).then(async (downloadURL) => {
@@ -40,38 +41,43 @@ const handleSubmit = async (e) => {
               photoURL: downloadURL,
             });
 
+            await setDoc(doc(db, "userChats", res.user.uid), {});
+            navigate("/");
+            
           } catch (err) {
             console.log(err);
-            setError(true);
+            setErr(true);
           }
         });
       });
     } catch (err) {
-      setError(true);
+      setErr(true);
     }
   };
 
   return (
-    <div className='formContainer'>
-        <div className="formWrapper">
-            <span className='logo'>Chat App</span>
-            <span class='title'>Register</span>
-            <form onSubmit={handleSubmit}>
-                <input required type="text" placeholder='name'/>
-                <input required type="email" placeholder='email'/>
-                <input required type="password" placeholder='password'/>
-                <input required type="file" id='file' style={{display: 'none'}}/>
-                <label htmlFor="file">
-                  <img src={Add}/>
-                  <span>Add an avatar</span>
-                </label>
-                <button>Sign Up</button>
-                {error && <span>Something went wrong</span>}
-            </form>
-            <p>You have an account already? Login</p>
-        </div>
+    <div className="formContainer">
+      <div className="formWrapper">
+        <span className="logo">Chat App</span>
+        <span className="title">Register</span>
+        <form onSubmit={handleSubmit}>
+          <input required type="text" placeholder="display name" />
+          <input required type="email" placeholder="email" />
+          <input required type="password" placeholder="password" />
+          <input required style={{ display: "none" }} type="file" id="file" />
+          <label htmlFor="file">
+            <img src={Add} alt="" />
+            <span>Add an avatar</span>
+          </label>
+          <button>Sign up</button>
+          {err && <span>Something went wrong</span>}
+        </form>
+        <p>
+          You do have an account? Login
+        </p>
+      </div>
     </div>
-  )
-}
+  );
+};
 
-export default Register
+export default Register;
